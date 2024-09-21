@@ -5,8 +5,9 @@ import requests
 from io import BytesIO
 import zipfile
 
-import sqlite3
 from lxml import etree
+
+import util
 
 
 class BaseCrawler():
@@ -58,13 +59,21 @@ class DARTCrawler(BaseCrawler):
         
         self.base_url = 'https://opendart.fss.or.kr/api/'
         self.key = json.loads(open('keys.json').read())['dart']
+        
+        self.conn = util.get_database_connection()
+        self.logger.debug('Database Connection Created')
+        
+        self.logger.debug('Initialization Done')
+        
+    
+    def __del__(self):
+        self.conn.close()
+        self.logger.debug('Database Connection Closed')
 
-            
 
-
-    def get_corp_code(self):
+    def get_corp_code(self) -> None:
         '''
-        DART에 등록되어있는 공시대상회사 중 주식시장에 등록된 회사의 고유번호, 회사명, 종목코드, 최근변경일자를 가져옵니다
+        DART에 등록되어있는 공시대상회사 중 주식시장에 등록된 회사의 고유번호, 회s사명, 종목코드, 최근변경일자를 가져옵니다
         '''
         self.logger.debug('get_corp_code Started')
         
@@ -102,9 +111,11 @@ class DARTCrawler(BaseCrawler):
                 curr_d['stock_code'] = stock_code
                 curr_d['modify_date'] = modify_date
 
-                corp_codes.append(curr_d)
-        
-        return corp_codes
+                corp_codes.append((corp_code, corp_name, stock_code, modify_date))
+                
+        self.conn.executemany('insert or replace into dart_corp_code values (?, ?, ?, ?)', corp_codes)
+        self.conn.commit()
+        return
                 
                 
   
