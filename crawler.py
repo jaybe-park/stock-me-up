@@ -1,40 +1,32 @@
 import json
 import logging
+from logging import DEBUG
 import requests
 from io import BytesIO
 import zipfile
 
+import sqlite3
 from lxml import etree
 
-class DARTCrawler():
+
+class BaseCrawler():
     '''
-    DART에서 정보를 수집하는 크롤러
+    기본이 되는 Crawler
     
-    Attributes:
-    - key : api 사용하기 위한 key (별도 파일에 보관됨)
+    지원 기능
+    - logging 설정
     '''
-    
-    
-    def __init__(self) -> None:
+
+    def __init__(self, logging_level=logging.DEBUG) -> None:
         '''
-        DARTCrawler 클래스를 초기화합니다
+        BaseCrawler를 초기화합니다
         '''
-        self.base_url = 'https://opendart.fss.or.kr/api/'
-        self.key = json.loads(open('keys.json').read())['dart']
-        
-        self.logger = self._get_logger(self.__class__.__name__)
-        
+        self.logger = self._get_logger(self.__class__.__name__, logging_level)
     
-    def _get_logger(self, name, level=logging.DEBUG) -> logging.Logger:
+    
+    def _get_logger(self, name, level) -> logging.Logger:
         '''
         logger를 생성합니다
-        
-        Args:
-            name (string): logger의 이름 (주로 클래스명)
-            level (string, optional): logger의 레벨 (default: DEBUG)
-        
-        Returns:
-            logging.Logger: 해당 클래스에서 사용할 logger
         '''
         
         logger = logging.getLogger(name)
@@ -50,6 +42,23 @@ class DARTCrawler():
             logger.addHandler(handler)
         
         return logger
+
+
+class DARTCrawler(BaseCrawler):
+    '''
+    DART에서 정보를 수집하는 크롤러
+    '''
+    
+    
+    def __init__(self, logging_level=logging.DEBUG) -> None:
+        '''
+        DARTCrawler 클래스를 초기화합니다
+        '''
+        super().__init__(logging_level=logging_level)
+        
+        self.base_url = 'https://opendart.fss.or.kr/api/'
+        self.key = json.loads(open('keys.json').read())['dart']
+
             
 
 
@@ -98,4 +107,18 @@ class DARTCrawler():
         return corp_codes
                 
                 
-                
+  
+    
+    
+class KRXCrawler(BaseCrawler):
+    '''
+    KRX에서 정보를 수집하는 크롤러
+    '''
+    
+    
+    def __init__(self, logging_level=logging.DEBUG) -> None:
+        '''
+        KRXCrawler를 초기화합니다
+        '''
+        super().__init__(logging_level)
+        
