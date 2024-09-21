@@ -73,7 +73,7 @@ class DARTCrawler(BaseCrawler):
 
     def get_corp_code(self) -> None:
         '''
-        DART에 등록되어있는 공시대상회사 중 주식시장에 등록된 회사의 고유번호, 회s사명, 종목코드, 최근변경일자를 가져옵니다
+        DART에 등록되어있는 공시대상회사 중 주식시장에 등록된 회사의 고유번호, 회사명, 종목코드, 최근변경일자를 가져옵니다
         '''
         self.logger.debug('get_corp_code Started')
         
