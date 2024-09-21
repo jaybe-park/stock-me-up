@@ -79,13 +79,13 @@ class DARTCrawler(BaseCrawler):
         
         url = 'corpCode.xml'
         param = {'crtfc_key': self.key}
+        self.logger.debug('Key Load Completed')
         
         res = requests.get(
             self.base_url + url,
             params=param
         )
-        
-        self.logger.debug('GET corpCode Done!')
+        self.logger.debug('GET corpCode Done - {res.status_code}')
         
         if res.status_code != 200:
             self.logger.error(f'Response Failed - {res.status_code}')
@@ -93,6 +93,7 @@ class DARTCrawler(BaseCrawler):
         
         zip_file = BytesIO(res.content)
         zip_ref = zipfile.ZipFile(zip_file)
+        self.logger.debug('Zip File Extracted')
         
         corp_code_xml = etree.fromstring(zip_ref.read('CORPCODE.xml'))
         
@@ -112,9 +113,12 @@ class DARTCrawler(BaseCrawler):
                 curr_d['modify_date'] = modify_date
 
                 corp_codes.append((corp_code, corp_name, stock_code, modify_date))
+        self.logger.debug('Corp Code Parsed')
                 
         self.conn.executemany('insert or replace into dart_corp_code values (?, ?, ?, ?)', corp_codes)
         self.conn.commit()
+        self.logger.debug('Corp Code Updated')
+        
         return
                 
                 
