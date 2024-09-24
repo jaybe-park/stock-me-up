@@ -204,9 +204,18 @@ class KRXCrawler(BaseCrawler):
     '''
     
     
+    # FIXME: 수정 필요
     def __init__(self, logging_level=logging.DEBUG) -> None:
         '''
         KRXCrawler를 초기화합니다
         '''
-        super().__init__(logging_level)
+        super().__init__(logging_level=logging_level)
+        
+        self.base_url = 'https://opendart.fss.or.kr/api/'
+        self.key = json.loads(open('keys.json').read())['dart']
+        
+        self.conn = util.get_database_connection()
+        self.logger.debug('Database Connection Created')
+        
+        self.logger.debug('Initialization Done')
         
