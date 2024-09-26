@@ -194,8 +194,38 @@ class DARTCrawler(BaseCrawler):
             
         self.logger.debug('get_company Done')
                 
-                
-  
+
+    def fetch_financial_statement(self, corp_code, year, report_code) -> dict:
+        '''
+        단일회사의 정기보고서 내의 XBRL재무제표의 주요계정과목(재무상태표, 손익계산서)를 가져옵니다
+        '''
+        self.logger.debug(f'get_financial_statement Started - corp_code: {corp_code}, year: {year}, report_code: {report_code}')
+        
+        url = 'fnlttSinglAcnt.json'
+        
+        param = {'crtfc_key': self.key, 'corp_code': corp_code, 'bsns_year': year, 'reprt_code': report_code}
+        
+        res = requests.get(
+            self.base_url + url,
+            params=param
+        )
+        if res.status_code != 200:
+            self.logger.error(f'Response Failed : res.status_code -  {res.status_code}')
+            return
+        self.logger.debug(f'GET financial statement Done')
+        
+        result = res.json()
+        
+        return result
+        
+        
+    def get_financial_statements(self):
+        '''
+        전체 회사의 정기보고서 내의 XBRL재무제표의 주요계정과목(재무상태표, 손익계산서)를 가져옵니다
+        '''
+        
+        
+        
     
     
 class KRXCrawler(BaseCrawler):
