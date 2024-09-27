@@ -69,6 +69,18 @@ class DARTCrawler(BaseCrawler):
     def __del__(self):
         self.conn.close()
         self.logger.debug('Database Connection Closed')
+        
+        
+    def crawl(self):
+        '''
+        기본적으로 DART에서 수집해야 할 정보를 수집합니다
+        
+        순서 : corp_code -> company -> financial statement
+        '''
+        
+        self.get_corp_code()
+        self.get_company()
+        # TODO: financial statement
 
 
     def get_corp_code(self) -> None:
