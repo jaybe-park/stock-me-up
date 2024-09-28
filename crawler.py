@@ -23,6 +23,10 @@ class BaseCrawler():
         BaseCrawler를 초기화합니다
         '''
         self.logger = self._get_logger(self.__class__.__name__, logging_level)
+        self.logger.debug('Logger Created')
+        
+        self.conn = util.get_database_connection()
+        self.logger.debug('Database Connection Created')
     
     
     def _get_logger(self, name, level) -> logging.Logger:
@@ -58,10 +62,7 @@ class DARTCrawler(BaseCrawler):
         super().__init__(logging_level=logging_level)
         
         self.base_url = 'https://opendart.fss.or.kr/api/'
-        self.key = json.loads(open('keys.json').read())['dart']
-        
-        self.conn = util.get_database_connection()
-        self.logger.debug('Database Connection Created')
+        self.key = util.get_key('dart')
         
         self.logger.debug('Initialization Done')
         
@@ -143,15 +144,15 @@ class DARTCrawler(BaseCrawler):
         SELECT
             dart_corp_code.corp_code ,
             dart_corp_code.modify_date ,
-            dart_company.modify_date as dart_company_modify_date
+            dart_company.modify_date AS dart_company_modify_date
         FROM 
             dart_corp_code
             left join
             dart_company 
-            on dart_corp_code.corp_code  = dart_company.corp_code
+            ON dart_corp_code.corp_code  = dart_company.corp_code
         WHERE
-            dart_company.modify_date is null
-            or dart_corp_code.modify_date > dart_company.modify_date 
+            dart_company.modify_date is NULL
+            OR dart_corp_code.modify_date > dart_company.modify_date 
         '''
         cursor.execute(query_to_find_target)
         targets = cursor.fetchall()
@@ -207,6 +208,7 @@ class DARTCrawler(BaseCrawler):
         self.logger.debug('get_company Done')
                 
 
+    ## FIXME: 
     def fetch_financial_statement(self, corp_code, year, report_code) -> dict:
         '''
         단일회사의 정기보고서 내의 XBRL재무제표의 주요계정과목(재무상태표, 손익계산서)를 가져옵니다
@@ -235,7 +237,32 @@ class DARTCrawler(BaseCrawler):
         '''
         전체 회사의 정기보고서 내의 XBRL재무제표의 주요계정과목(재무상태표, 손익계산서)를 가져옵니다
         '''
+        self.logger.debug(f'get_financial_statements Started')
         
+        cursor = self.conn.cursor()
+        query_to_find_target = '''
+        SELECT
+            dart_corp_code.corp_code,
+            krx_company.corp_code AS stock_code,
+            krx_company.market_type,
+            krx_company.corp_name 
+        FROM
+            krx_company
+            left join
+            dart_corp_code
+            ON krx_company.corp_code = dart_corp_code.stock_code 
+        '''
+        
+        cursor.execute(query_to_find_target)
+        targets = cursor.fetchall()
+        self.logger.debug('Getting Targets Done')
+        
+        kospi = filter(lambda x: x[2] == 'KOSPI', targets)
+        kosdaq = filter(lambda x: x[2] == 'KOSDAQ', targets)
+        konex = filter(lambda x: x[2] == 'KONEX', targets)
+        
+        for corp_code, stock_code, market_tupe, corp_name in kospi:
+            print(corp_code)
         
         
     
@@ -254,10 +281,7 @@ class KRXCrawler(BaseCrawler):
         super().__init__(logging_level=logging_level)
         
         self.base_url = 'https://opendart.fss.or.kr/api/'
-        self.key = json.loads(open('keys.json').read())['dart']
-        
-        self.conn = util.get_database_connection()
-        self.logger.debug('Database Connection Created')
+        self.key = util.get_key('krx')
         
         self.logger.debug('Initialization Done')
         
