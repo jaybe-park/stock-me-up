@@ -64,6 +64,9 @@ class DARTCrawler(BaseCrawler):
         self.base_url = 'https://opendart.fss.or.kr/api/'
         self.key = util.get_key('dart')
         
+        ## 1분기보고서 : 11013 / 반기보고서 : 11012 / 3분기보고서 : 11014 / 사업보고서 : 11011
+        self.report_codes = [11013, 11012, 11014, 11011]
+        
         self.logger.debug('Initialization Done')
         
     
