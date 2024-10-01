@@ -211,36 +211,76 @@ class DARTCrawler(BaseCrawler):
         self.logger.debug('get_company Done')
                 
 
-    ## FIXME: 
-    def fetch_financial_statement(self, corp_code, year, report_code) -> dict:
+    def get_financial_statement(self, corp_code, year, report_code) -> dict:
         '''
-        단일회사의 정기보고서 내의 XBRL재무제표의 주요계정과목(재무상태표, 손익계산서)를 가져옵니다
+        단일 회사의 정기보고서 내에 XBRL재무제표의 모든계정과목을 가져옵니다 (재무제표/연결재무제표 모두 저장)
         '''
         self.logger.debug(f'get_financial_statement Started - corp_code: {corp_code}, year: {year}, report_code: {report_code}')
         
-        url = 'fnlttSinglAcnt.json'
+        url = 'fnlttSinglAcntAll.json'
         
-        param = {'crtfc_key': self.key, 'corp_code': corp_code, 'bsns_year': year, 'reprt_code': report_code}
+        result = list()
+        # OFS:재무제표, CFS:연결재무제표
+        for fs_div in ['OFS', 'CFS']:
+            self.logger.debug(f'fs_div - {fs_div}')
+            
+            param = {'crtfc_key': self.key, 'corp_code': corp_code, 'bsns_year': year, 'reprt_code': report_code, 'fs_div': fs_div}
+            res = requests.get(
+                self.base_url + url,
+                params=param
+            )
+            if res.status_code != 200:
+                self.logger.error(f'Response Failed : res.status_code -  {res.status_code}')
+                return
+            
+            data = res.json()
+            if data['status'] != '000':
+                self.logger.error(f'Response Failed : data[\'status\'] -  {data['status']}, data[\'message\'] -  {data['message']}')
+                return
+            self.logger.debug(f'GET financial statement Done')
         
-        res = requests.get(
-            self.base_url + url,
-            params=param
-        )
-        if res.status_code != 200:
-            self.logger.error(f'Response Failed : res.status_code -  {res.status_code}')
-            return
-        self.logger.debug(f'GET financial statement Done')
+            for d in data['list']:
+                curr_d = list()
+                curr_d.append(d.get('rcept_no', None))
+                curr_d.append(d.get('corp_code', None))
+                curr_d.append(d.get('bsns_year', None))
+                curr_d.append(d.get('reprt_code', None))
+                curr_d.append(fs_div)
+                curr_d.append(d.get('sj_div', None))
+                curr_d.append(d.get('sj_nm', None))
+                curr_d.append(d.get('account_id', None))
+                curr_d.append(d.get('account_nm', None))
+                curr_d.append(d.get('account_detail', None))
+                curr_d.append(d.get('thstrm_nm', None))
+                curr_d.append(d.get('thstrm_amount', None))
+                curr_d.append(d.get('thstrm_add_amount', None))
+                curr_d.append(d.get('frmtrm_nm', None))
+                curr_d.append(d.get('frmtrm_amount', None))
+                curr_d.append(d.get('frmtrm_q_nm', None))
+                curr_d.append(d.get('frmtrm_q_amount', None))
+                curr_d.append(d.get('frmtrm_add_amount', None))
+                curr_d.append(d.get('bfefrmtrm_nm', None))
+                curr_d.append(d.get('bfefrmtrm_amount', None))
+                curr_d.append(d.get('ord', None))
+                curr_d.append(d.get('currency', None))
+                
+                result.append(curr_d)
         
-        result = res.json()
+        query_to_insert = 'insert or replace into dart_financial_statement values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            
+        self.conn.executemany(query_to_insert, result)
+        self.conn.commit()
+        self.logger.debug('Insert Done')
         
-        return result
+        self.logger.debug('get_financial_statement Done')
         
         
-    def get_financial_statements(self):
+        
+    def get_entire_financial_statements(self, year, report_code):
         '''
-        전체 회사의 정기보고서 내의 XBRL재무제표의 주요계정과목(재무상태표, 손익계산서)를 가져옵니다
+        전체 회사의 정기보고서 내의 XBRL재무제표의 주요계정과목(재무상태표, 손익계산서)를 가져옵니다 (재무제표/연결재무제표 모두 저장)
         '''
-        self.logger.debug(f'get_financial_statements Started')
+        self.logger.debug(f'get_entire_financial_statements Started - year: {year}, report_code: {report_code}')
         
         cursor = self.conn.cursor()
         query_to_find_target = '''
