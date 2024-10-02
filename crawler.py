@@ -234,8 +234,11 @@ class DARTCrawler(BaseCrawler):
                 return
             
             data = res.json()
-            if data['status'] != '000':
-                self.logger.error(f'Response Failed : data[\'status\'] -  {data['status']}, data[\'message\'] -  {data['message']}')
+            if data['status'] == '013':
+                self.logger.warning(f'Response Failed : {data['message']} (corp_code: {corp_code}, year: {year}, report_code: {report_code}')
+                return
+            elif data['status'] != '000':
+                self.logger.error(f'Response Failed : data[\'status\']:  {data['status']}, data[\'message\']:  {data['message']}')
                 return
             self.logger.debug(f'GET financial statement Done')
         
