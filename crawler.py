@@ -286,29 +286,43 @@ class DARTCrawler(BaseCrawler):
         self.logger.debug(f'get_entire_financial_statements Started - year: {year}, report_code: {report_code}')
         
         cursor = self.conn.cursor()
-        query_to_find_target = '''
+        query_to_find_target = f'''
         SELECT
             dart_corp_code.corp_code,
             krx_company.corp_code AS stock_code,
             krx_company.market_type,
-            krx_company.corp_name 
+            krx_company.corp_name
         FROM
             krx_company
             left join
             dart_corp_code
-            ON krx_company.corp_code = dart_corp_code.stock_code 
+            ON krx_company.corp_code = dart_corp_code.stock_code
+            LEFT JOIN
+            (SELECT
+                corp_code, bsns_year, reprt_code
+            FROM
+                dart_financial_statement
+            WHERE 
+                bsns_year = '{year}'
+                AND reprt_code = '{report_code}'
+            GROUP BY
+                corp_code, bsns_year, reprt_code) fs
+            ON dart_corp_code.corp_code = fs.corp_code
+        WHERE
+            fs.corp_code IS NULL
         '''
         
         cursor.execute(query_to_find_target)
         targets = cursor.fetchall()
         self.logger.debug('Getting Targets Done')
         
-        kospi = filter(lambda x: x[2] == 'KOSPI', targets)
-        kosdaq = filter(lambda x: x[2] == 'KOSDAQ', targets)
-        konex = filter(lambda x: x[2] == 'KONEX', targets)
+        for corp_code, stock_code, market_type, corp_name in targets:
+            self.get_financial_statement(corp_code, year, report_code)
+            
+            # Exceeding Request Rate 에러 발생으로 0~0.1초 사이 랜덤으로 sleep 로직 추가
+            time.sleep(random.random() / 10)
         
-        for corp_code, stock_code, market_tupe, corp_name in kospi:
-            print(corp_code)
+        return
         
         
     
