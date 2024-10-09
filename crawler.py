@@ -98,7 +98,7 @@ class DARTCrawler(BaseCrawler):
         
         res = requests.get(
             self.base_url + url,
-            params=param
+            params=param,
         )
         self.logger.debug(f'GET corpCode Done - {res.status_code}')
         
@@ -211,63 +211,68 @@ class DARTCrawler(BaseCrawler):
         self.logger.debug('get_company Done')
                 
 
-    def get_financial_statement(self, corp_code, year, report_code) -> dict:
+    def get_financial_statement(self, corp_code, year, report_code, fs_div) -> dict:
         '''
         단일 회사의 정기보고서 내에 XBRL재무제표의 모든계정과목을 가져옵니다 (재무제표/연결재무제표 모두 저장)
         '''
-        self.logger.debug(f'get_financial_statement Started - corp_code: {corp_code}, year: {year}, report_code: {report_code}')
+        self.logger.debug(f'get_financial_statement Started - corp_code: {corp_code}, year: {year}, report_code: {report_code}, fs_div - {fs_div}')
         
         url = 'fnlttSinglAcntAll.json'
         
         result = list()
-        # OFS:재무제표, CFS:연결재무제표
-        for fs_div in ['OFS', 'CFS']:
-            self.logger.debug(f'fs_div - {fs_div}')
-            
-            param = {'crtfc_key': self.key, 'corp_code': corp_code, 'bsns_year': year, 'reprt_code': report_code, 'fs_div': fs_div}
-            res = requests.get(
-                self.base_url + url,
-                params=param
-            )
-            if res.status_code != 200:
-                self.logger.error(f'Response Failed : res.status_code -  {res.status_code}')
-                return
-            
-            data = res.json()
-            if data['status'] == '013':
-                self.logger.warning(f'Response Failed : {data['message']} (corp_code: {corp_code}, year: {year}, report_code: {report_code}')
-                return
-            elif data['status'] != '000':
-                self.logger.error(f'Response Failed : data[\'status\']:  {data['status']}, data[\'message\']:  {data['message']}')
-                return
-            self.logger.debug(f'GET financial statement Done')
+        param = {'crtfc_key': self.key, 'corp_code': corp_code, 'bsns_year': year, 'reprt_code': report_code, 'fs_div': fs_div}
+        res = requests.get(
+            self.base_url + url,
+            params=param
+        )
+        if res.status_code != 200:
+            self.logger.error(f'Response Failed : res.status_code -  {res.status_code}')
+            return
         
-            for d in data['list']:
-                curr_d = list()
-                curr_d.append(d.get('rcept_no', None))
-                curr_d.append(d.get('corp_code', None))
-                curr_d.append(d.get('bsns_year', None))
-                curr_d.append(d.get('reprt_code', None))
-                curr_d.append(fs_div)
-                curr_d.append(d.get('sj_div', None))
-                curr_d.append(d.get('sj_nm', None))
-                curr_d.append(d.get('account_id', None))
-                curr_d.append(d.get('account_nm', None))
-                curr_d.append(d.get('account_detail', None))
-                curr_d.append(d.get('thstrm_nm', None))
-                curr_d.append(d.get('thstrm_amount', None))
-                curr_d.append(d.get('thstrm_add_amount', None))
-                curr_d.append(d.get('frmtrm_nm', None))
-                curr_d.append(d.get('frmtrm_amount', None))
-                curr_d.append(d.get('frmtrm_q_nm', None))
-                curr_d.append(d.get('frmtrm_q_amount', None))
-                curr_d.append(d.get('frmtrm_add_amount', None))
-                curr_d.append(d.get('bfefrmtrm_nm', None))
-                curr_d.append(d.get('bfefrmtrm_amount', None))
-                curr_d.append(d.get('ord', None))
-                curr_d.append(d.get('currency', None))
-                
-                result.append(curr_d)
+        data = res.json()
+        if data['status'] == '013':
+            self.logger.warning(f'Response Failed : {data['message']} (corp_code: {corp_code}, year: {year}, report_code: {report_code})')
+            
+            # 없는 회사 null로 채워넣음
+            self.conn.execute(
+                'insert or replace into dart_financial_statement values (null, ?, ?, ?, ?, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)',
+                (corp_code, year, report_code, fs_div)
+            )
+            self.conn.commit()
+            self.logger.debug('Insert Done')
+            
+            return
+        elif data['status'] != '000':
+            self.logger.error(f'Response Failed : data[\'status\']:  {data['status']}, data[\'message\']:  {data['message']}')
+            return
+        self.logger.debug(f'GET financial statement Done')
+    
+        for d in data['list']:
+            curr_d = list()
+            curr_d.append(d.get('rcept_no', None))
+            curr_d.append(d.get('corp_code', None))
+            curr_d.append(d.get('bsns_year', None))
+            curr_d.append(d.get('reprt_code', None))
+            curr_d.append(fs_div)
+            curr_d.append(d.get('sj_div', None))
+            curr_d.append(d.get('sj_nm', None))
+            curr_d.append(d.get('account_id', None))
+            curr_d.append(d.get('account_nm', None))
+            curr_d.append(d.get('account_detail', None))
+            curr_d.append(d.get('thstrm_nm', None))
+            curr_d.append(d.get('thstrm_amount', None))
+            curr_d.append(d.get('thstrm_add_amount', None))
+            curr_d.append(d.get('frmtrm_nm', None))
+            curr_d.append(d.get('frmtrm_amount', None))
+            curr_d.append(d.get('frmtrm_q_nm', None))
+            curr_d.append(d.get('frmtrm_q_amount', None))
+            curr_d.append(d.get('frmtrm_add_amount', None))
+            curr_d.append(d.get('bfefrmtrm_nm', None))
+            curr_d.append(d.get('bfefrmtrm_amount', None))
+            curr_d.append(d.get('ord', None))
+            curr_d.append(d.get('currency', None))
+            
+            result.append(curr_d)
         
         query_to_insert = 'insert or replace into dart_financial_statement values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
             
@@ -286,41 +291,46 @@ class DARTCrawler(BaseCrawler):
         self.logger.debug(f'get_entire_financial_statements Started - year: {year}, report_code: {report_code}')
         
         cursor = self.conn.cursor()
-        query_to_find_target = f'''
-        SELECT
-            dart_corp_code.corp_code,
-            krx_company.corp_code AS stock_code,
-            krx_company.market_type,
-            krx_company.corp_name
-        FROM
-            krx_company
-            left join
-            dart_corp_code
-            ON krx_company.corp_code = dart_corp_code.stock_code
-            LEFT JOIN
-            (SELECT
-                corp_code, bsns_year, reprt_code
+        
+        # OFS:재무제표, CFS:연결재무제표
+        for fs_div in ['OFS', 'CFS']:
+        
+            query_to_find_target = f'''
+            SELECT
+                dart_corp_code.corp_code,
+                krx_company.corp_code AS stock_code,
+                krx_company.market_type,
+                krx_company.corp_name
             FROM
-                dart_financial_statement
-            WHERE 
-                bsns_year = '{year}'
-                AND reprt_code = '{report_code}'
-            GROUP BY
-                corp_code, bsns_year, reprt_code) fs
-            ON dart_corp_code.corp_code = fs.corp_code
-        WHERE
-            fs.corp_code IS NULL
-        '''
+                krx_company
+                left join
+                dart_corp_code
+                ON krx_company.corp_code = dart_corp_code.stock_code
+                LEFT JOIN
+                (SELECT
+                    corp_code, bsns_year, reprt_code
+                FROM
+                    dart_financial_statement
+                WHERE 
+                    bsns_year = '{year}'
+                    AND reprt_code = '{report_code}'
+                    AND fs_div = '{fs_div}'
+                GROUP BY
+                    corp_code, bsns_year, reprt_code) fs
+                ON dart_corp_code.corp_code = fs.corp_code
+            WHERE
+                fs.corp_code IS NULL
+            '''
         
-        cursor.execute(query_to_find_target)
-        targets = cursor.fetchall()
-        self.logger.debug('Getting Targets Done')
-        
-        for corp_code, stock_code, market_type, corp_name in targets:
-            self.get_financial_statement(corp_code, year, report_code)
+            cursor.execute(query_to_find_target)
+            targets = cursor.fetchall()
+            self.logger.debug('Getting Targets Done')
             
-            # Exceeding Request Rate 에러 발생으로 0~0.1초 사이 랜덤으로 sleep 로직 추가
-            time.sleep(random.random() / 10)
+            for corp_code, stock_code, market_type, corp_name in targets:
+                self.get_financial_statement(corp_code, year, report_code, fs_div)
+                
+                # Exceeding Request Rate 에러 발생으로 0~0.1초 사이 랜덤으로 sleep 로직 추가
+                time.sleep(random.random() / 10)
         
         return
         
