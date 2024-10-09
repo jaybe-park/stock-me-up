@@ -198,3 +198,5 @@ keys.json
 testspace.*
 .DS_Store
 data/stock-me-up.db
+
+*.db

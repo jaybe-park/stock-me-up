@@ -244,6 +244,7 @@ class DARTCrawler(BaseCrawler):
             return
         elif data['status'] != '000':
             self.logger.error(f'Response Failed : data[\'status\']:  {data['status']}, data[\'message\']:  {data['message']}')
+            self.logger.error(f'corp_code: {corp_code}, year: {year}, report_code: {report_code}, fs_div: {fs_div}')
             return
         self.logger.debug(f'GET financial statement Done')
     
