@@ -47,11 +47,17 @@ class BaseCrawler():
             logger.addHandler(handler)
         
         return logger
-
+    
+    
+    def __del__(self):
+        self.conn.close()
+        self.logger.debug('Database Connection Closed')
 
 class DARTCrawler(BaseCrawler):
     '''
     DART에서 정보를 수집하는 크롤러
+    
+    주로 정기공시 관련된 정보를 수집합니다
     '''
     
     
@@ -68,11 +74,6 @@ class DARTCrawler(BaseCrawler):
         self.report_codes = [11013, 11012, 11014, 11011]
         
         self.logger.debug('Initialization Done')
-        
-    
-    def __del__(self):
-        self.conn.close()
-        self.logger.debug('Database Connection Closed')
         
         
     def crawl(self):
@@ -355,4 +356,19 @@ class KRXCrawler(BaseCrawler):
         self.key = util.get_key('krx')
         
         self.logger.debug('Initialization Done')
-        
+
+
+
+class YahooFinanceCrawler(BaseCrawler):
+    '''
+    YahooFinanceCrawler에서 정보를 수집하는 크롤러
+    
+    주로 일단위 주가정보를 수집합니다
+    '''
+    
+    def __init__(self, logging_level=logging.DEBUG) -> None:
+        '''
+        YahooFinanceCrawler에서 클래스를 초기화합니다
+        '''
+        super().__init__(logging_level=logging_level)
+        self.logger.debug('Initialization Done')
