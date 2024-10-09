@@ -215,7 +215,7 @@ class DARTCrawler(BaseCrawler):
         '''
         단일 회사의 정기보고서 내에 XBRL재무제표의 모든계정과목을 가져옵니다 (재무제표/연결재무제표 모두 저장)
         '''
-        self.logger.debug(f'get_financial_statement Started - corp_code: {corp_code}, year: {year}, report_code: {report_code}, fs_div - {fs_div}')
+        self.logger.debug(f'get_financial_statement Started - corp_code: {corp_code}, year: {year}, report_code: {report_code}, fs_div: {fs_div}')
         
         url = 'fnlttSinglAcntAll.json'
         
@@ -231,7 +231,7 @@ class DARTCrawler(BaseCrawler):
         
         data = res.json()
         if data['status'] == '013':
-            self.logger.warning(f'Response Failed : {data['message']} (corp_code: {corp_code}, year: {year}, report_code: {report_code})')
+            self.logger.warning(f'Response Failed : {data['message']} (corp_code: {corp_code}, year: {year}, report_code: {report_code}), fs_div: {fs_div}')
             
             # 없는 회사 null로 채워넣음
             self.conn.execute(
